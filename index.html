@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FlashNet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- Header -->
+    <header>
+      <div class="header-inner">
+        <div class="logo" id="go-home">⚡ FlashNet</div>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <h1 class="hero-title">Hamma narsa<br/><span>bir joyda</span></h1>
+      <p class="hero-sub">Musiqa, video, ilova — toping va yuklab oling</p>
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="s-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Qidirish..." autocomplete="off"/>
+          <button id="search-btn">Qidirish</button>
+        </div>
+        <div class="category-pills">
+          <button class="pill active" data-cat="all">Hammasi</button>
+          <button class="pill" data-cat="music">🎵 Musiqa</button>
+          <button class="pill" data-cat="video">🎬 Video</button>
+          <button class="pill" data-cat="app">📱 Ilova</button>
+          <button class="pill" data-cat="other">📄 Boshqa</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid -->
+    <section class="content-section">
+      <div class="content-meta">
+        <span id="content-title">Barcha kontentlar</span>
+        <span id="content-count"></span>
+      </div>
+      <div id="main-grid" class="main-grid"></div>
+    </section>
+
+  </div>
+
+  <!-- Audio Player Bar -->
+  <div id="player" class="player hidden">
+    <div class="player-info">
+      <span class="player-icon">🎵</span>
+      <div class="player-text">
+        <div id="player-name">—</div>
+        <div id="player-author"></div>
+      </div>
+    </div>
+    <audio id="audio-el" controls></audio>
+    <button id="player-close">✕</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="index.js"></script>
+</body>
+</html>
