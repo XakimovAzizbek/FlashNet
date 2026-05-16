@@ -41,10 +41,10 @@ const ITEMS = [
   // ───── VIDEO ─────
   {
     id: "v1", type: "video",
-    name: "O'zbekiston tabiati 4K",
-    author: "Nature Uz",
+    name: "Malibu 2 video",
+    author: "mp4",
     cover: "",
-    link: "https://example.com/uzbekistan-nature.mp4"
+    link: "https://github.com/XakimovAzizbek/FlashNet/releases/download/2/VID_20260225_121955_224.mp4"
   },
   {
     id: "v2", type: "video",
