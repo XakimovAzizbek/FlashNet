@@ -1,42 +1,37 @@
 // ============================================================
 //  FlashNet — index.js
 //
-//  Yangi kontent qo'shish uchun quyidagi ITEMS massiviga
-//  yangi obyekt qo'shing:
+//  Yangi kontent qo'shish: quyidagi ITEMS massiviga qo'shing.
 //
 //  {
-//    id:     "noyob-id",          // har biri har xil bo'lsin
-//    type:   "music",             // music | video | app | other
-//    name:   "Shaxriyor - Qalbim",
-//    author: "Shaxriyor",         // ixtiyoriy
-//    cover:  "https://...",       // muqova rasmi linki (ixtiyoriy)
-//    link:   "https://..."        // yuklab olish / tinglash linki
+//    id:     "noyob-id",
+//    type:   "music",        // music | video | app | other
+//    name:   "Nom",
+//    author: "Muallif",      // ixtiyoriy
+//    cover:  "https://...",  // muqova (ixtiyoriy)
+//    link:   "https://..."   // to'g'ridan-to'g'ri fayl linki
 //  }
-//
 // ============================================================
 
 const ITEMS = [
 
   // ───── MUSIQA ─────
   {
-    id: "m1",
-    type: "music",
+    id: "m1", type: "music",
     name: "Shaxriyor - Qalbim",
     author: "Shaxriyor",
     cover: "",
     link: "https://example.com/shaxriyor-qalbim.mp3"
   },
   {
-    id: "m2",
-    type: "music",
+    id: "m2", type: "music",
     name: "Ulug'bek Rahmatullayev - Sensiz",
     author: "Ulug'bek Rahmatullayev",
     cover: "",
     link: "https://example.com/sensiz.mp3"
   },
   {
-    id: "m3",
-    type: "music",
+    id: "m3", type: "music",
     name: "Jasur Umirov - Yolg'iz",
     author: "Jasur Umirov",
     cover: "",
@@ -45,16 +40,14 @@ const ITEMS = [
 
   // ───── VIDEO ─────
   {
-    id: "v1",
-    type: "video",
+    id: "v1", type: "video",
     name: "O'zbekiston tabiati 4K",
     author: "Nature Uz",
     cover: "",
     link: "https://example.com/uzbekistan-nature.mp4"
   },
   {
-    id: "v2",
-    type: "video",
+    id: "v2", type: "video",
     name: "Lo-fi Hip Hop Mix",
     author: "ChillBeats",
     cover: "",
@@ -63,24 +56,21 @@ const ITEMS = [
 
   // ───── ILOVALAR ─────
   {
-    id: "a1",
-    type: "app",
-    name: "Top follow",
-    author: "apk",
+    id: "a1", type: "app",
+    name: "Telegram",
+    author: "Telegram FZ-LLC",
     cover: "",
-    link: "https://github.com/XakimovAzizbek/FlashNet/releases/download/v1.0.0/TopFollow_v837_Release.apk"
+    link: "https://telegram.org/dl"
   },
   {
-    id: "a2",
-    type: "app",
+    id: "a2", type: "app",
     name: "VLC Media Player",
     author: "VideoLAN",
     cover: "",
     link: "https://www.videolan.org/vlc/"
   },
   {
-    id: "a3",
-    type: "app",
+    id: "a3", type: "app",
     name: "WhatsApp",
     author: "Meta",
     cover: "",
@@ -89,8 +79,7 @@ const ITEMS = [
 
   // ───── BOSHQA ─────
   {
-    id: "o1",
-    type: "other",
+    id: "o1", type: "other",
     name: "Ubuntu 24.04 LTS",
     author: "Canonical",
     cover: "",
@@ -111,6 +100,117 @@ const TYPE_CONFIG = {
 let activeCategory = "all";
 let activeQuery    = "";
 
+// ─── TELEGRAM API ───
+// Telegram Mini App SDK dan foydalanamiz (mavjud bo'lsa)
+const tg = window.Telegram?.WebApp || null;
+
+// Telegram ichida ekanligini tekshirish
+const isTelegram = !!tg && !!tg.initData;
+
+// Telegram'da link ochish — brauzerga chiqmaydi, ichki webview ishlatadi
+function tgOpenLink(url) {
+  if (isTelegram) {
+    // try_instant_view: false — to'g'ridan-to'g'ri link ochadi
+    tg.openLink(url, { try_instant_view: false });
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+// ─── YUKLAB OLISH ───
+// Telegram Mini App ichida <a download> ishlamaydi.
+// Yechim: fetch → Blob → object URL → <a> click
+// Bu usul kichik fayllar uchun ishlaydi (musiqa, kichik ilovalar).
+// Katta fayllar uchun tgOpenLink ishlatiladi.
+async function downloadItem(item) {
+  if (!item.link) { showToast("❌ Link topilmadi!"); return; }
+
+  showToast("⏳ Yuklanmoqda...");
+
+  try {
+    const response = await fetch(item.link, { mode: "cors" });
+
+    if (!response.ok) throw new Error("fetch failed");
+
+    const blob = await response.blob();
+    const ext  = getExtension(item.link, blob.type);
+    const filename = sanitize(item.name) + ext;
+
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement("a");
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    showToast("✅ Yuklab olindi!");
+
+  } catch (err) {
+    // CORS yoki boshqa xato — Telegram link orqali ochish
+    console.warn("fetch failed, fallback to openLink:", err);
+    tgOpenLink(item.link);
+    showToast("⬇ Brauzerda yuklanmoqda...");
+  }
+}
+
+function getExtension(url, mimeType) {
+  // URL dan extension olishga urinish
+  const fromUrl = url.split("?")[0].split(".").pop().toLowerCase();
+  if (fromUrl && fromUrl.length <= 5 && /^[a-z0-9]+$/.test(fromUrl)) {
+    return "." + fromUrl;
+  }
+  // MIME dan aniqlash
+  const map = {
+    "audio/mpeg": ".mp3",
+    "audio/mp4": ".m4a",
+    "audio/ogg": ".ogg",
+    "audio/wav": ".wav",
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "application/zip": ".zip",
+    "application/x-apk": ".apk",
+    "application/vnd.android.package-archive": ".apk",
+    "application/octet-stream": "",
+  };
+  return map[mimeType] || "";
+}
+
+function sanitize(name) {
+  return name.replace(/[\\/:*?"<>|]/g, "_").trim();
+}
+
+// ─── AUDIO PLAYER ───
+function playAudio(item) {
+  const player = document.getElementById("audio-player");
+  const audio  = document.getElementById("audio-el");
+
+  document.getElementById("player-name").textContent   = item.name;
+  document.getElementById("player-author").textContent = item.author || "";
+  audio.src = item.link;
+  player.classList.remove("hidden");
+  audio.play().catch(() => {});
+}
+
+// ─── VIDEO MODAL ───
+function playVideo(item) {
+  const modal = document.getElementById("video-modal");
+  const video = document.getElementById("video-el");
+
+  document.getElementById("video-title").textContent = item.name;
+  video.src = item.link;
+  modal.classList.remove("hidden");
+  video.play().catch(() => {});
+}
+
+function closeVideo() {
+  const modal = document.getElementById("video-modal");
+  const video = document.getElementById("video-el");
+  video.pause(); video.src = "";
+  modal.classList.add("hidden");
+}
+
 // ─── RENDER CARD ───
 function renderCard(item, delay) {
   const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.other;
@@ -124,8 +224,7 @@ function renderCard(item, delay) {
   coverDiv.className = "card-cover";
   if (item.cover) {
     const img = document.createElement("img");
-    img.src = item.cover;
-    img.alt = item.name;
+    img.src = item.cover; img.alt = item.name;
     img.onerror = () => { coverDiv.innerHTML = ""; coverDiv.textContent = cfg.icon; };
     coverDiv.appendChild(img);
   } else {
@@ -141,23 +240,48 @@ function renderCard(item, delay) {
     ${item.author ? `<div class="card-author">${item.author}</div>` : ""}
   `;
 
-  // Footer buttons
+  // Footer
   const footer = document.createElement("div");
   footer.className = "card-footer";
 
   if (item.type === "music") {
-    const btnListen = document.createElement("button");
-    btnListen.className = "btn-action btn-listen";
-    btnListen.textContent = "▶ Tinglash";
-    btnListen.addEventListener("click", () => playAudio(item));
-    footer.appendChild(btnListen);
-  }
+    // Tinglash tugmasi
+    const btnPlay = document.createElement("button");
+    btnPlay.className = "btn-action btn-play";
+    btnPlay.textContent = "▶ Tinglash";
+    btnPlay.addEventListener("click", () => playAudio(item));
+    footer.appendChild(btnPlay);
 
-  const btnDl = document.createElement("button");
-  btnDl.className = "btn-action btn-download";
-  btnDl.textContent = "⬇ Yuklab olish";
-  btnDl.addEventListener("click", () => downloadItem(item));
-  footer.appendChild(btnDl);
+    // Yuklab olish tugmasi
+    const btnDl = document.createElement("button");
+    btnDl.className = "btn-action btn-dl";
+    btnDl.textContent = "⬇ Yukish";
+    btnDl.addEventListener("click", () => downloadItem(item));
+    footer.appendChild(btnDl);
+
+  } else if (item.type === "video") {
+    // Ko'rish (ichki player)
+    const btnWatch = document.createElement("button");
+    btnWatch.className = "btn-action btn-watch";
+    btnWatch.textContent = "▶ Ko'rish";
+    btnWatch.addEventListener("click", () => playVideo(item));
+    footer.appendChild(btnWatch);
+
+    // Yuklab olish
+    const btnDl = document.createElement("button");
+    btnDl.className = "btn-action btn-dl";
+    btnDl.textContent = "⬇ Yukish";
+    btnDl.addEventListener("click", () => downloadItem(item));
+    footer.appendChild(btnDl);
+
+  } else {
+    // App / Other — faqat yuklab olish
+    const btnDl = document.createElement("button");
+    btnDl.className = "btn-action btn-dl";
+    btnDl.textContent = "⬇ Yuklab olish";
+    btnDl.addEventListener("click", () => downloadItem(item));
+    footer.appendChild(btnDl);
+  }
 
   card.appendChild(coverDiv);
   card.appendChild(body);
@@ -174,14 +298,12 @@ function renderGrid(data) {
     grid.innerHTML = `
       <div class="empty-state">
         <span class="e-icon">🔍</span>
-        <p>Hech narsa topilmadi. Boshqa so'z bilan urinib ko'ring.</p>
+        <p>Hech narsa topilmadi.</p>
       </div>`;
     return;
   }
 
-  data.forEach((item, i) => {
-    grid.appendChild(renderCard(item, i));
-  });
+  data.forEach((item, i) => grid.appendChild(renderCard(item, i)));
 }
 
 // ─── FILTER ───
@@ -207,8 +329,7 @@ function refresh() {
     title.textContent = "Barcha kontentlar";
     count.textContent = "";
   } else {
-    const catLabel = activeCategory !== "all"
-      ? TYPE_CONFIG[activeCategory]?.label : "";
+    const catLabel = activeCategory !== "all" ? TYPE_CONFIG[activeCategory]?.label : "";
     title.textContent = activeQuery.trim()
       ? `"${activeQuery}"${catLabel ? " — " + catLabel : ""}`
       : catLabel;
@@ -218,34 +339,6 @@ function refresh() {
   renderGrid(filtered);
 }
 
-// ─── DOWNLOAD ───
-function downloadItem(item) {
-  if (!item.link) { showToast("❌ Link topilmadi!"); return; }
-  const a = document.createElement("a");
-  a.href = item.link;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.download = item.name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  showToast(`⬇ Yuklab olish boshlandi`);
-}
-
-// ─── AUDIO PLAYER ───
-function playAudio(item) {
-  const player = document.getElementById("player");
-  const audio  = document.getElementById("audio-el");
-  const name   = document.getElementById("player-name");
-  const author = document.getElementById("player-author");
-
-  audio.src    = item.link;
-  name.textContent   = item.name;
-  author.textContent = item.author || "";
-  player.classList.remove("hidden");
-  audio.play().catch(() => {});
-}
-
 // ─── TOAST ───
 let toastTimer;
 function showToast(msg) {
@@ -253,11 +346,17 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.remove("hidden");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.add("hidden"), 2800);
+  toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
 }
 
 // ─── INIT ───
 document.addEventListener("DOMContentLoaded", () => {
+
+  // Telegram Mini App sozlamalari
+  if (isTelegram) {
+    tg.ready();
+    tg.expand(); // to'liq ekranda ochish
+  }
 
   refresh();
 
@@ -267,10 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refresh();
   });
   document.getElementById("search-input").addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      activeQuery = e.target.value;
-      refresh();
-    }
+    if (e.key === "Enter") { activeQuery = e.target.value; refresh(); }
   });
 
   // Pills
@@ -283,22 +379,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Logo → reset
+  // Logo reset
   document.getElementById("go-home").addEventListener("click", () => {
     document.getElementById("search-input").value = "";
-    activeQuery = "";
-    activeCategory = "all";
+    activeQuery = ""; activeCategory = "all";
     document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
     document.querySelector(".pill[data-cat='all']").classList.add("active");
     refresh();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top:0, behavior:"smooth" });
   });
 
-  // Player close
+  // Audio player close
   document.getElementById("player-close").addEventListener("click", () => {
     const audio = document.getElementById("audio-el");
-    audio.pause();
-    audio.src = "";
-    document.getElementById("player").classList.add("hidden");
+    audio.pause(); audio.src = "";
+    document.getElementById("audio-player").classList.add("hidden");
   });
+
+  // Video modal close
+  document.getElementById("video-close").addEventListener("click", closeVideo);
+  document.getElementById("video-backdrop").addEventListener("click", closeVideo);
 });

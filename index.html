@@ -6,6 +6,8 @@
   <title>FlashNet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Telegram Mini App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="index.css" />
 </head>
 <body>
@@ -53,7 +55,7 @@
   </div>
 
   <!-- Audio Player Bar -->
-  <div id="player" class="player hidden">
+  <div id="audio-player" class="player hidden">
     <div class="player-info">
       <span class="player-icon">🎵</span>
       <div class="player-text">
@@ -63,6 +65,18 @@
     </div>
     <audio id="audio-el" controls></audio>
     <button id="player-close">✕</button>
+  </div>
+
+  <!-- Video Modal -->
+  <div id="video-modal" class="modal hidden">
+    <div class="modal-backdrop" id="video-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="video-title">Video</span>
+        <button class="modal-close" id="video-close">✕</button>
+      </div>
+      <video id="video-el" controls playsinline></video>
+    </div>
   </div>
 
   <!-- Toast -->
