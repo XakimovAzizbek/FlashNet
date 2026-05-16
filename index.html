@@ -6,7 +6,6 @@
   <title>FlashNet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="index.css" />
 </head>
@@ -14,14 +13,12 @@
 
   <div id="app">
 
-    <!-- Header -->
     <header>
       <div class="header-inner">
         <div class="logo" id="go-home">⚡ FlashNet</div>
       </div>
     </header>
 
-    <!-- Hero -->
     <section class="hero">
       <div class="hero-glow"></div>
       <h1 class="hero-title">Hamma narsa<br/><span>bir joyda</span></h1>
@@ -30,7 +27,7 @@
       <div class="search-wrap">
         <div class="search-box">
           <span class="s-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Qidirish..." autocomplete="off"/>
+          <input type="text" id="search-input" placeholder="Nimani qidirmoqchisiz?..." autocomplete="off"/>
           <button id="search-btn">Qidirish</button>
         </div>
         <div class="category-pills">
@@ -43,10 +40,9 @@
       </div>
     </section>
 
-    <!-- Grid -->
     <section class="content-section">
       <div class="content-meta">
-        <span id="content-title">Barcha kontentlar</span>
+        <span id="content-title">Nimani qidirmoqchisiz?</span>
         <span id="content-count"></span>
       </div>
       <div id="main-grid" class="main-grid"></div>
@@ -54,7 +50,6 @@
 
   </div>
 
-  <!-- Audio Player Bar -->
   <div id="audio-player" class="player hidden">
     <div class="player-info">
       <span class="player-icon">🎵</span>
@@ -67,7 +62,6 @@
     <button id="player-close">✕</button>
   </div>
 
-  <!-- Video Modal -->
   <div id="video-modal" class="modal hidden">
     <div class="modal-backdrop" id="video-backdrop"></div>
     <div class="modal-box">
@@ -79,7 +73,6 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
   <script src="index.js"></script>

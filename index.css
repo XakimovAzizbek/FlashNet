@@ -92,7 +92,6 @@ header {
   border: none; border-radius: 40px;
   padding: 10px 22px;
   font-family: var(--font-head); font-weight: 700; font-size: 0.88rem;
-  cursor: pointer; transition: opacity .2s, transform .1s;
 }
 #search-btn:hover { opacity: 0.88; }
 #search-btn:active { transform: scale(0.97); }

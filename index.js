@@ -99,18 +99,14 @@ const TYPE_CONFIG = {
 
 let activeCategory = "all";
 let activeQuery    = "";
+let isSearched     = false; // Dastlab qidirilmagan holatda turadi
 
 // ─── TELEGRAM API ───
-// Telegram Mini App SDK dan foydalanamiz (mavjud bo'lsa)
 const tg = window.Telegram?.WebApp || null;
-
-// Telegram ichida ekanligini tekshirish
 const isTelegram = !!tg && !!tg.initData;
 
-// Telegram'da link ochish — brauzerga chiqmaydi, ichki webview ishlatadi
 function tgOpenLink(url) {
   if (isTelegram) {
-    // try_instant_view: false — to'g'ridan-to'g'ri link ochadi
     tg.openLink(url, { try_instant_view: false });
   } else {
     window.open(url, "_blank", "noopener,noreferrer");
@@ -118,10 +114,6 @@ function tgOpenLink(url) {
 }
 
 // ─── YUKLAB OLISH ───
-// Telegram Mini App ichida <a download> ishlamaydi.
-// Yechim: fetch → Blob → object URL → <a> click
-// Bu usul kichik fayllar uchun ishlaydi (musiqa, kichik ilovalar).
-// Katta fayllar uchun tgOpenLink ishlatiladi.
 async function downloadItem(item) {
   if (!item.link) { showToast("❌ Link topilmadi!"); return; }
 
@@ -129,7 +121,6 @@ async function downloadItem(item) {
 
   try {
     const response = await fetch(item.link, { mode: "cors" });
-
     if (!response.ok) throw new Error("fetch failed");
 
     const blob = await response.blob();
@@ -148,7 +139,6 @@ async function downloadItem(item) {
     showToast("✅ Yuklab olindi!");
 
   } catch (err) {
-    // CORS yoki boshqa xato — Telegram link orqali ochish
     console.warn("fetch failed, fallback to openLink:", err);
     tgOpenLink(item.link);
     showToast("⬇ Brauzerda yuklanmoqda...");
@@ -156,12 +146,10 @@ async function downloadItem(item) {
 }
 
 function getExtension(url, mimeType) {
-  // URL dan extension olishga urinish
   const fromUrl = url.split("?")[0].split(".").pop().toLowerCase();
   if (fromUrl && fromUrl.length <= 5 && /^[a-z0-9]+$/.test(fromUrl)) {
     return "." + fromUrl;
   }
-  // MIME dan aniqlash
   const map = {
     "audio/mpeg": ".mp3",
     "audio/mp4": ".m4a",
@@ -245,14 +233,12 @@ function renderCard(item, delay) {
   footer.className = "card-footer";
 
   if (item.type === "music") {
-    // Tinglash tugmasi
     const btnPlay = document.createElement("button");
     btnPlay.className = "btn-action btn-play";
     btnPlay.textContent = "▶ Tinglash";
     btnPlay.addEventListener("click", () => playAudio(item));
     footer.appendChild(btnPlay);
 
-    // Yuklab olish tugmasi
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
     btnDl.textContent = "⬇ Yukish";
@@ -260,14 +246,12 @@ function renderCard(item, delay) {
     footer.appendChild(btnDl);
 
   } else if (item.type === "video") {
-    // Ko'rish (ichki player)
     const btnWatch = document.createElement("button");
     btnWatch.className = "btn-action btn-watch";
     btnWatch.textContent = "▶ Ko'rish";
     btnWatch.addEventListener("click", () => playVideo(item));
     footer.appendChild(btnWatch);
 
-    // Yuklab olish
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
     btnDl.textContent = "⬇ Yukish";
@@ -275,7 +259,6 @@ function renderCard(item, delay) {
     footer.appendChild(btnDl);
 
   } else {
-    // App / Other — faqat yuklab olish
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
     btnDl.textContent = "⬇ Yuklab olish";
@@ -293,6 +276,16 @@ function renderCard(item, delay) {
 function renderGrid(data) {
   const grid = document.getElementById("main-grid");
   grid.innerHTML = "";
+
+  // Agar foydalanuvchi hali biron narsa yozib qidirmagan bo'lsa
+  if (!isSearched) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <span class="e-icon">📱</span>
+        <p>Musiqa, video, apk va boshqa kontentlarni topish uchun qidiruv maydoniga matn kiriting, kategoriyani tanlang va Qidirish tugmasini bosing.</p>
+      </div>`;
+    return;
+  }
 
   if (data.length === 0) {
     grid.innerHTML = `
@@ -321,20 +314,23 @@ function getFiltered() {
 }
 
 function refresh() {
-  const filtered = getFiltered();
   const title = document.getElementById("content-title");
   const count = document.getElementById("content-count");
 
-  if (!activeQuery.trim() && activeCategory === "all") {
-    title.textContent = "Barcha kontentlar";
+  if (!isSearched) {
+    title.textContent = "Nimani qidirmoqchisiz?";
     count.textContent = "";
-  } else {
-    const catLabel = activeCategory !== "all" ? TYPE_CONFIG[activeCategory]?.label : "";
-    title.textContent = activeQuery.trim()
-      ? `"${activeQuery}"${catLabel ? " — " + catLabel : ""}`
-      : catLabel;
-    count.textContent = `${filtered.length} ta natija`;
+    renderGrid([]);
+    return;
   }
+
+  const filtered = getFiltered();
+  const catLabel = activeCategory !== "all" ? TYPE_CONFIG[activeCategory]?.label : "Barcha kontentlar";
+  
+  title.textContent = activeQuery.trim()
+    ? `"${activeQuery}" — ${catLabel}`
+    : catLabel;
+  count.textContent = `${filtered.length} ta natija`;
 
   renderGrid(filtered);
 }
@@ -352,51 +348,65 @@ function showToast(msg) {
 // ─── INIT ───
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Telegram Mini App sozlamalari
   if (isTelegram) {
     tg.ready();
-    tg.expand(); // to'liq ekranda ochish
+    tg.expand();
   }
 
   refresh();
 
-  // Search
-  document.getElementById("search-btn").addEventListener("click", () => {
-    activeQuery = document.getElementById("search-input").value;
+  // Faqat qidirish amali chaqirilganda ishlaydigan funksiya
+  function handleSearch() {
+    const inputVal = document.getElementById("search-input").value;
+    
+    // Agar input bo'sh bo'lsa, foydalanuvchiga habar beramiz va qidiruvni boshlamaymiz
+    if (!inputVal.trim()) {
+      showToast("⚠️ Iltimos, qidirish uchun matn kiriting!");
+      return;
+    }
+    
+    activeQuery = inputVal;
+    isSearched = true; // Faqat shu yerda qidiruv haqiqatda bajarildi deb belgilanadi
     refresh();
-  });
+  }
+
+  // Search Button bosilganda
+  document.getElementById("search-btn").addEventListener("click", handleSearch);
+  
+  // Input ichida Enter bosilganda
   document.getElementById("search-input").addEventListener("keydown", e => {
-    if (e.key === "Enter") { activeQuery = e.target.value; refresh(); }
+    if (e.key === "Enter") { handleSearch(); }
   });
 
-  // Pills
+  // Pills (Kategoriyalar) bosilganda faqat vizual almashadi, qidiruv tugmasi bosilmaguncha filtrlamaydi
   document.querySelectorAll(".pill").forEach(pill => {
     pill.addEventListener("click", () => {
       document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
       pill.classList.add("active");
       activeCategory = pill.dataset.cat;
-      refresh();
     });
   });
 
-  // Logo reset
+  // Logo bosilganda (Boshlang'ich holatga to'liq tozalash)
   document.getElementById("go-home").addEventListener("click", () => {
     document.getElementById("search-input").value = "";
-    activeQuery = ""; activeCategory = "all";
+    activeQuery = ""; 
+    activeCategory = "all";
+    isSearched = false;
     document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
     document.querySelector(".pill[data-cat='all']").classList.add("active");
     refresh();
     window.scrollTo({ top:0, behavior:"smooth" });
   });
 
-  // Audio player close
+  // Audio player yopish
   document.getElementById("player-close").addEventListener("click", () => {
     const audio = document.getElementById("audio-el");
     audio.pause(); audio.src = "";
     document.getElementById("audio-player").classList.add("hidden");
   });
 
-  // Video modal close
+  // Video modal yopish
   document.getElementById("video-close").addEventListener("click", closeVideo);
   document.getElementById("video-backdrop").addEventListener("click", closeVideo);
 });
