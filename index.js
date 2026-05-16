@@ -57,10 +57,10 @@ const ITEMS = [
   // ───── ILOVALAR ─────
   {
     id: "a1", type: "app",
-    name: "Telegram",
-    author: "Telegram FZ-LLC",
+    name: "Top follow",
+    author: "apk",
     cover: "",
-    link: "https://telegram.org/dl"
+    link: "https://github.com/XakimovAzizbek/FlashNet/releases/download/v1.0.0/TopFollow_v837_Release.apk"
   },
   {
     id: "a2", type: "app",
