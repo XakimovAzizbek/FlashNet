@@ -48,10 +48,10 @@ const ITEMS = [
   },
   {
     id: "v2", type: "video",
-    name: "Lo-fi Hip Hop Mix",
-    author: "ChillBeats",
+    name: "SEX VIDEO",
+    author: "mp4",
     cover: "",
-    link: "https://example.com/lofi-mix.mp4"
+    link: "https://github.com/XakimovAzizbek/FlashNet/releases/download/3/16968.mp4"
   },
 
   // ───── ILOVALAR ─────
