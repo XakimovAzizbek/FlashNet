@@ -34,13 +34,32 @@ header {
 .header-inner {
   max-width: 1100px; margin: 0 auto;
   padding: 16px 24px;
+  display: flex; justify-content: space-between; align-items: center;
 }
 .logo {
   font-family: var(--font-head);
   font-size: 1.5rem; font-weight: 800;
   color: var(--accent); cursor: pointer;
   letter-spacing: -0.03em; user-select: none;
-  display: inline-block;
+}
+
+/* LANG SWITCHER */
+.lang-switcher {
+  display: flex; gap: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 3px; border-radius: 30px;
+}
+.lang-btn {
+  background: none; border: none;
+  color: var(--text2); font-family: var(--font-head);
+  font-weight: 700; font-size: 0.75rem;
+  padding: 6px 12px; border-radius: 20px;
+  cursor: pointer; transition: all 0.2s;
+}
+.lang-btn.active {
+  background: var(--accent);
+  color: #07080f;
 }
 
 /* HERO */
@@ -92,6 +111,7 @@ header {
   border: none; border-radius: 40px;
   padding: 10px 22px;
   font-family: var(--font-head); font-weight: 700; font-size: 0.88rem;
+  cursor: pointer;
 }
 #search-btn:hover { opacity: 0.88; }
 #search-btn:active { transform: scale(0.97); }

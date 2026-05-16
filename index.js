@@ -1,20 +1,9 @@
 // ============================================================
 //  FlashNet — index.js
-//
-//  Yangi kontent qo'shish: quyidagi ITEMS massiviga qo'shing.
-//
-//  {
-//    id:     "noyob-id",
-//    type:   "music",        // music | video | app | other
-//    name:   "Nom",
-//    author: "Muallif",      // ixtiyoriy
-//    cover:  "https://...",  // muqova (ixtiyoriy)
-//    link:   "https://..."   // to'g'ridan-to'g'ri fayl linki
-//  }
+//  Siz qo'shgan Malibu 2 va boshqa kontentlar saqlab qolindi.
 // ============================================================
 
 const ITEMS = [
-
   // ───── MUSIQA ─────
   {
     id: "m1", type: "music",
@@ -85,23 +74,82 @@ const ITEMS = [
     cover: "",
     link: "https://ubuntu.com/download"
   },
-
 ];
 
-// ============================================================
-
-const TYPE_CONFIG = {
-  music: { label: "Musiqa", icon: "🎵", color: "#f0d45a" },
-  video: { label: "Video",  icon: "🎬", color: "#e07aff" },
-  app:   { label: "Ilova",  icon: "📱", color: "#5af0c8" },
-  other: { label: "Boshqa", icon: "📄", color: "#7abaff" },
+// ─── TARJIMA MA'LUMOTLARI (LOKALIZATSIYA) ───
+const LANG_DATA = {
+  uz: {
+    heroTitle: "Hamma narsa<br/><span>bir joyda</span>",
+    heroSub: "Musiqa, video, ilova — toping va yuklab oling",
+    searchPlaceholder: "Nimani qidirmoqchisiz?...",
+    searchBtn: "Qidirish",
+    pillAll: "Hammasi",
+    pillMusic: "🎵 Musiqa",
+    pillVideo: "🎬 Video",
+    pillApp: "📱 Ilova",
+    pillOther: "📄 Boshqa",
+    initialTitle: "Nimani qidirmoqchisiz?",
+    emptyStateInitial: "Musiqa, video, apk va boshqa kontentlarni topish uchun qidiruv maydoniga matn kiriting, kategoriyani tanlang va Qidirish tugmasini bosing.",
+    emptyStateNotFound: "Hech narsa topilmadi.",
+    toastNoText: "⚠️ Iltimos, qidirish uchun matn kiriting!",
+    toastNoLink: "❌ Link topilmadi!",
+    toastLoading: "⏳ Yuklanmoqda...",
+    toastSuccess: "✅ Yuklab olindi!",
+    toastFallback: "⬇ Brauzerda yuklanmoqda...",
+    btnListen: "▶ Tinglash",
+    btnWatch: "▶ Ko'rish",
+    btnDlShort: "⬇ Yukish",
+    btnDlFull: "⬇ Yuklab olish",
+    catAll: "Barcha kontentlar",
+    catMusic: "Musiqa",
+    catVideo: "Video",
+    catApp: "Ilova",
+    catOther: "Boshqa",
+    resultsText: "ta natija"
+  },
+  ru: {
+    heroTitle: "Всё в<br/><span>одном месте</span>",
+    heroSub: "Музыка, видео, приложения — находите и скачивайте",
+    searchPlaceholder: "Что вы ищете?...",
+    searchBtn: "Поиск",
+    pillAll: "Все",
+    pillMusic: "🎵 Музыка",
+    pillVideo: "🎬 Видео",
+    pillApp: "📱 Прил.",
+    pillOther: "📄 Другое",
+    initialTitle: "Что вы хотите найти?",
+    emptyStateInitial: "Чтобы найти музыку, видео, apk и другой контент, введите текст в поле поиска, выберите категорию и нажмите кнопку Поиск.",
+    emptyStateNotFound: "Ничего не найдено.",
+    toastNoText: "⚠️ Пожалуйста, введите текст для поиска!",
+    toastNoLink: "❌ Ссылка не найдена!",
+    toastLoading: "⏳ Скачивание...",
+    toastSuccess: "✅ Успешно скачано!",
+    toastFallback: "⬇ Скачивание в браузере...",
+    btnListen: "▶ Слушать",
+    btnWatch: "▶ Смотреть",
+    btnDlShort: "⬇ Скачать",
+    btnDlFull: "⬇ Скачать файл",
+    catAll: "Весь контент",
+    catMusic: "Музыка",
+    catVideo: "Видео",
+    catApp: "Приложения",
+    catOther: "Другое",
+    resultsText: "результатов"
+  }
 };
 
+const TYPE_CONFIG = {
+  music: { labelKey: "catMusic", icon: "🎵", color: "#f0d45a" },
+  video: { labelKey: "catVideo", icon: "🎬", color: "#e07aff" },
+  app:   { labelKey: "catApp",   icon: "📱", color: "#5af0c8" },
+  other: { labelKey: "catOther", icon: "📄", color: "#7abaff" },
+};
+
+let currentLang    = "uz"; // Boshlang'ich til o'zbekcha
 let activeCategory = "all";
 let activeQuery    = "";
-let isSearched     = false; // Dastlab qidirilmagan holatda turadi
+let isSearched     = false;
 
-// ─── TELEGRAM API ───
 const tg = window.Telegram?.WebApp || null;
 const isTelegram = !!tg && !!tg.initData;
 
@@ -113,11 +161,27 @@ function tgOpenLink(url) {
   }
 }
 
-// ─── YUKLAB OLISH ───
-async function downloadItem(item) {
-  if (!item.link) { showToast("❌ Link topilmadi!"); return; }
+// ─── INTERFEYS TILINI YANGILASH ───
+function updateInterfaceLanguage() {
+  const lang = LANG_DATA[currentLang];
+  
+  document.getElementById("hero-title").innerHTML = lang.heroTitle;
+  document.getElementById("hero-sub").textContent = lang.heroSub;
+  document.getElementById("search-input").placeholder = lang.searchPlaceholder;
+  document.getElementById("search-btn").textContent = lang.searchBtn;
+  document.getElementById("pill-all").textContent = lang.pillAll;
+  document.getElementById("pill-music").textContent = lang.pillMusic;
+  document.getElementById("pill-video").textContent = lang.pillVideo;
+  document.getElementById("pill-app").textContent = lang.pillApp;
+  document.getElementById("pill-other").textContent = lang.pillOther;
+  
+  refresh();
+}
 
-  showToast("⏳ Yuklanmoqda...");
+async function downloadItem(item) {
+  const lang = LANG_DATA[currentLang];
+  if (!item.link) { showToast(lang.toastNoLink); return; }
+  showToast(lang.toastLoading);
 
   try {
     const response = await fetch(item.link, { mode: "cors" });
@@ -136,12 +200,11 @@ async function downloadItem(item) {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-    showToast("✅ Yuklab olindi!");
-
+    showToast(lang.toastSuccess);
   } catch (err) {
     console.warn("fetch failed, fallback to openLink:", err);
     tgOpenLink(item.link);
-    showToast("⬇ Brauzerda yuklanmoqda...");
+    showToast(lang.toastFallback);
   }
 }
 
@@ -160,7 +223,6 @@ function getExtension(url, mimeType) {
     "application/zip": ".zip",
     "application/x-apk": ".apk",
     "application/vnd.android.package-archive": ".apk",
-    "application/octet-stream": "",
   };
   return map[mimeType] || "";
 }
@@ -169,23 +231,19 @@ function sanitize(name) {
   return name.replace(/[\\/:*?"<>|]/g, "_").trim();
 }
 
-// ─── AUDIO PLAYER ───
 function playAudio(item) {
   const player = document.getElementById("audio-player");
   const audio  = document.getElementById("audio-el");
-
-  document.getElementById("player-name").textContent   = item.name;
+  document.getElementById("player-name").textContent = item.name;
   document.getElementById("player-author").textContent = item.author || "";
   audio.src = item.link;
   player.classList.remove("hidden");
   audio.play().catch(() => {});
 }
 
-// ─── VIDEO MODAL ───
 function playVideo(item) {
   const modal = document.getElementById("video-modal");
   const video = document.getElementById("video-el");
-
   document.getElementById("video-title").textContent = item.name;
   video.src = item.link;
   modal.classList.remove("hidden");
@@ -199,15 +257,15 @@ function closeVideo() {
   modal.classList.add("hidden");
 }
 
-// ─── RENDER CARD ───
 function renderCard(item, delay) {
   const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.other;
+  const lang = LANG_DATA[currentLang];
+  const typeLabel = lang[cfg.labelKey] || item.type;
 
   const card = document.createElement("div");
   card.className = "card";
   card.style.animationDelay = `${delay * 0.045}s`;
 
-  // Cover
   const coverDiv = document.createElement("div");
   coverDiv.className = "card-cover";
   if (item.cover) {
@@ -219,49 +277,45 @@ function renderCard(item, delay) {
     coverDiv.textContent = cfg.icon;
   }
 
-  // Body
   const body = document.createElement("div");
   body.className = "card-body";
   body.innerHTML = `
-    <div class="card-type" style="color:${cfg.color}">${cfg.label}</div>
+    <div class="card-type" style="color:${cfg.color}">${typeLabel}</div>
     <div class="card-name">${item.name}</div>
     ${item.author ? `<div class="card-author">${item.author}</div>` : ""}
   `;
 
-  // Footer
   const footer = document.createElement("div");
   footer.className = "card-footer";
 
   if (item.type === "music") {
     const btnPlay = document.createElement("button");
     btnPlay.className = "btn-action btn-play";
-    btnPlay.textContent = "▶ Tinglash";
+    btnPlay.textContent = lang.btnListen;
     btnPlay.addEventListener("click", () => playAudio(item));
     footer.appendChild(btnPlay);
 
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
-    btnDl.textContent = "⬇ Yukish";
+    btnDl.textContent = lang.btnDlShort;
     btnDl.addEventListener("click", () => downloadItem(item));
     footer.appendChild(btnDl);
-
   } else if (item.type === "video") {
     const btnWatch = document.createElement("button");
     btnWatch.className = "btn-action btn-watch";
-    btnWatch.textContent = "▶ Ko'rish";
+    btnWatch.textContent = lang.btnWatch;
     btnWatch.addEventListener("click", () => playVideo(item));
     footer.appendChild(btnWatch);
 
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
-    btnDl.textContent = "⬇ Yukish";
+    btnDl.textContent = lang.btnDlShort;
     btnDl.addEventListener("click", () => downloadItem(item));
     footer.appendChild(btnDl);
-
   } else {
     const btnDl = document.createElement("button");
     btnDl.className = "btn-action btn-dl";
-    btnDl.textContent = "⬇ Yuklab olish";
+    btnDl.textContent = lang.btnDlFull;
     btnDl.addEventListener("click", () => downloadItem(item));
     footer.appendChild(btnDl);
   }
@@ -272,17 +326,16 @@ function renderCard(item, delay) {
   return card;
 }
 
-// ─── RENDER GRID ───
 function renderGrid(data) {
   const grid = document.getElementById("main-grid");
+  const lang = LANG_DATA[currentLang];
   grid.innerHTML = "";
 
-  // Agar foydalanuvchi hali biron narsa yozib qidirmagan bo'lsa
   if (!isSearched) {
     grid.innerHTML = `
       <div class="empty-state">
         <span class="e-icon">📱</span>
-        <p>Musiqa, video, apk va boshqa kontentlarni topish uchun qidiruv maydoniga matn kiriting, kategoriyani tanlang va Qidirish tugmasini bosing.</p>
+        <p>${lang.emptyStateInitial}</p>
       </div>`;
     return;
   }
@@ -291,7 +344,7 @@ function renderGrid(data) {
     grid.innerHTML = `
       <div class="empty-state">
         <span class="e-icon">🔍</span>
-        <p>Hech narsa topilmadi.</p>
+        <p>${lang.emptyStateNotFound}</p>
       </div>`;
     return;
   }
@@ -299,7 +352,6 @@ function renderGrid(data) {
   data.forEach((item, i) => grid.appendChild(renderCard(item, i)));
 }
 
-// ─── FILTER ───
 function getFiltered() {
   let res = ITEMS;
   if (activeCategory !== "all") res = res.filter(i => i.type === activeCategory);
@@ -316,26 +368,24 @@ function getFiltered() {
 function refresh() {
   const title = document.getElementById("content-title");
   const count = document.getElementById("content-count");
+  const lang = LANG_DATA[currentLang];
 
   if (!isSearched) {
-    title.textContent = "Nimani qidirmoqchisiz?";
+    title.textContent = lang.initialTitle;
     count.textContent = "";
     renderGrid([]);
     return;
   }
 
   const filtered = getFiltered();
-  const catLabel = activeCategory !== "all" ? TYPE_CONFIG[activeCategory]?.label : "Barcha kontentlar";
+  const catLabel = activeCategory !== "all" ? lang[TYPE_CONFIG[activeCategory]?.labelKey] : lang.catAll;
   
-  title.textContent = activeQuery.trim()
-    ? `"${activeQuery}" — ${catLabel}`
-    : catLabel;
-  count.textContent = `${filtered.length} ta natija`;
+  title.textContent = activeQuery.trim() ? `"${activeQuery}" — ${catLabel}` : catLabel;
+  count.textContent = `${filtered.length} ${lang.resultsText}`;
 
   renderGrid(filtered);
 }
 
-// ─── TOAST ───
 let toastTimer;
 function showToast(msg) {
   const toast = document.getElementById("toast");
@@ -347,38 +397,31 @@ function showToast(msg) {
 
 // ─── INIT ───
 document.addEventListener("DOMContentLoaded", () => {
-
   if (isTelegram) {
-    tg.ready();
-    tg.expand();
+    tg.ready(); tg.expand();
   }
 
-  refresh();
+  updateInterfaceLanguage();
 
-  // Faqat qidirish amali chaqirilganda ishlaydigan funksiya
   function handleSearch() {
     const inputVal = document.getElementById("search-input").value;
+    const lang = LANG_DATA[currentLang];
     
-    // Agar input bo'sh bo'lsa, foydalanuvchiga habar beramiz va qidiruvni boshlamaymiz
     if (!inputVal.trim()) {
-      showToast("⚠️ Iltimos, qidirish uchun matn kiriting!");
+      showToast(lang.toastNoText);
       return;
     }
     
     activeQuery = inputVal;
-    isSearched = true; // Faqat shu yerda qidiruv haqiqatda bajarildi deb belgilanadi
+    isSearched = true;
     refresh();
   }
 
-  // Search Button bosilganda
   document.getElementById("search-btn").addEventListener("click", handleSearch);
-  
-  // Input ichida Enter bosilganda
   document.getElementById("search-input").addEventListener("keydown", e => {
     if (e.key === "Enter") { handleSearch(); }
   });
 
-  // Pills (Kategoriyalar) bosilganda faqat vizual almashadi, qidiruv tugmasi bosilmaguncha filtrlamaydi
   document.querySelectorAll(".pill").forEach(pill => {
     pill.addEventListener("click", () => {
       document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
@@ -387,7 +430,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Logo bosilganda (Boshlang'ich holatga to'liq tozalash)
+  // Til o'zgartirish tugmalari hodisasi
+  document.querySelectorAll(".lang-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentLang = btn.dataset.lang;
+      updateInterfaceLanguage(); // Interfeysni yangilash
+    });
+  });
+
   document.getElementById("go-home").addEventListener("click", () => {
     document.getElementById("search-input").value = "";
     activeQuery = ""; 
@@ -399,14 +451,12 @@ document.addEventListener("DOMContentLoaded", () => {
     window.scrollTo({ top:0, behavior:"smooth" });
   });
 
-  // Audio player yopish
   document.getElementById("player-close").addEventListener("click", () => {
     const audio = document.getElementById("audio-el");
     audio.pause(); audio.src = "";
     document.getElementById("audio-player").classList.add("hidden");
   });
 
-  // Video modal yopish
   document.getElementById("video-close").addEventListener("click", closeVideo);
   document.getElementById("video-backdrop").addEventListener("click", closeVideo);
 });
